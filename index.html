@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+import os, io, zipfile, textwrap, json, datetime
+from pathlib import Path
+
+# Pillow for icons
+from PIL import Image, ImageDraw, ImageFont
+
+# --- Paths
+uploaded_src = "/mnt/data/06921e39-ffd9-4045-aea8-2224cfa9ccef.html"
+base_dir = Path("/mnt/data/ohenro-pwa")
+icons_dir = base_dir / "icons"
+base_dir.mkdir(parents=True, exist_ok=True)
+icons_dir.mkdir(parents=True, exist_ok=True)
+
+# --- Load original HTML
+with open(uploaded_src, "r", encoding="utf-8") as f:
+    html = f.read()
+
+# --- Inject PWA tags and SW registration
+head_inject = """
+  <meta name="theme-color" content="#0b1020">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+"""
+sw_register = """
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(e => console.warn('SW reg failed:', e));
+      });
+    }
+  </script>
+"""
+
+if "</head>" in html:
+    html = html.replace("</head>", head_inject + "\n</head>")
+else:
+    html = head_inject + html
+
+if "</body>" in html:
+    html = html.replace("</body>", sw_register + "\n</body>")
+else:
+    html = html + sw_register
+
+# Save index.html
+index_path = base_dir / "index.html"
+with open(index_path, "w", encoding="utf-8") as f:
+    f.write(html)
+
+# --- manifest.webmanifest
+manifest = {
+    "name": "お遍路 四国活性化アプリ",
+    "short_name": "お遍路MVP",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0b1020",
+    "theme_color": "#0b1020",
+    "lang": "ja",
+    "icons": [
+        {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    ]
+}
+with open(base_dir / "manifest.webmanifest", "w", encoding="utf-8") as f:
+    json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+# --- service-worker.js (basic offline)
+sw_js = """\
+// v1.0 - basic offline cache for Ohenro PWA
+const CACHE_NAME = 'ohenro-cache-v1';
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return; // Only cache GET
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      const networkFetch = fetch(request).then((response) => {
+        // Clone & store a copy for future offline
+        const respClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, respClone)).catch(() => {});
+        return response;
+      }).catch(() => cached);
+      return cached || networkFetch;
+    })
+  );
+});
+"""
+with open(base_dir / "service-worker.js", "w", encoding="utf-8") as f:
+    f.write(sw_js)
+
+# --- Create simple icons (192, 512)
+def make_icon(size, path):
+    bg = (11, 16, 32)  # #0b1020
+    img = Image.new("RGBA", (size, size), bg)
+    d = ImageDraw.Draw(img)
+    # White circle
+    margin = size // 16
+    d.ellipse((margin, margin, size - margin, size - margin), outline=(255,255,255,255), width=size//18)
+    # Center text "OH"
+    text = "OH"
+    # Try to load a larger default font size
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size//3)
+    except Exception:
+        font = ImageFont.load_default()
+    tw, th = d.textsize(text, font=font)
+    d.text(((size - tw)//2, (size - th)//2), text, fill=(255,255,255,255), font=font)
+    img.save(path, "PNG")
+
+make_icon(192, icons_dir / "icon-192.png")
+make_icon(512, icons_dir / "icon-512.png")
+
+# --- README (日本語)
+readme = f"""
+お遍路 四国活性化アプリ（PWA）
+==============================
+生成日時: {datetime.datetime.now().isoformat(timespec='seconds')}
+
+▼ 使い方（PC）
+1) このフォルダを任意の場所に展開
+2) ターミナルでフォルダを開き、ローカルサーバを起動
+   python3 -m http.server 8000
+3) ブラウザで http://localhost:8000 を開く
+
+▼ 使い方（スマホでインストール）
+- Android: 右上メニュー → 「アプリをインストール」または「ホーム画面に追加」
+- iPhone: 共有ボタン → 「ホーム画面に追加」
+（インストール提案が出ない場合は、PCで(2)(3)を行い、同一LAN内のスマホから http://<PCのIP>:8000 にアクセスしてください）
+
+▼ 構成
+- index.html（あなたの元のHTMLをPWA対応に自動加工）
+- manifest.webmanifest（アプリ名やアイコン等の定義）
+- service-worker.js（オフライン対応）
+- icons/icon-192.png, icons/icon-512.png（アプリアイコン）
+
+※ さらに機能追加したい場合は index.html 内に自由に追記してください。
+"""
+with open(base_dir / "README.txt", "w", encoding="utf-8") as f:
+    f.write(readme.strip() + "\n")
+
+# --- Zip the whole folder
+zip_path = "/mnt/data/ohenro-pwa.zip"
+def zipdir(path, ziph):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, path)
+            ziph.write(full_path, rel_path)
+
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    zipdir(str(base_dir), zipf)
+
+zip_path
