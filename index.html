@@ -66,6 +66,756 @@
 
 </head>
 <body>
-  <!-- ここから先は長いので省略しますが、アップしてくれたファイルの中身をそのままコピペしてください -->
+  <header>
+    <div class="wrap">
+      <h1>お遍路 四国活性化アプリ（改良MVP・ローカル保存）</h1>
+      <div class="toolbar">
+        <span class="pill">ロール: <strong id="roleLabel">一般ユーザー</strong></span>
+        <button id="toggleRole">運営モード 切替</button>
+        <button id="exportAll">データをエクスポート</button>
+        <input type="file" id="importAll" accept="application/json" style="display:none"/>
+        <button id="importBtn">インポート</button>
+        <span class="pill right">テーマ: 
+          <select id="themePick">
+            <option value="dark">ダーク</option>
+            <option value="light">ライト</option>
+            <option value="green">森</option>
+          </select>
+        </span>
+      </div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="mapTab">マップ</button>
+        <button class="tab-btn" data-tab="live">LIVE状況</button>
+        <button class="tab-btn" data-tab="diary">日記</button>
+        <button class="tab-btn" data-tab="encounter">出会い</button>
+        <button class="tab-btn" data-tab="temples">霊場紹介/QR</button>
+        <button class="tab-btn" data-tab="gallery88">88ギャラリー</button>
+        <button class="tab-btn" data-tab="achieve">アチーブメント</button>
+        <button class="tab-btn" data-tab="settings">設定(通知/位置)</button>
+        <button class="tab-btn" data-tab="about">使い方</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ===== Map ===== -->
+    <section id="mapTab" class="section active">
+      <div id="map" aria-label="四国マップ"></div>
+      <div class="toolbar">
+        <div class="filters">
+          <label class="pill"><input type="checkbox" class="catFilter" value="休憩所" checked> 休憩所</label>
+          <label class="pill"><input type="checkbox" class="catFilter" value="給水" checked> 給水</label>
+          <label class="pill"><input type="checkbox" class="catFilter" value="トイレ" checked> トイレ</label>
+          <label class="pill"><input type="checkbox" class="catFilter" value="宿" checked> 宿</label>
+          <label class="pill"><input type="checkbox" class="catFilter" value="お接待" checked> お接待</label>
+        </div>
+        <span class="muted">表示カテゴリを絞れます。右クリックで座標を取得（運営）。</span>
+      </div>
+      <section id="mapPanel" class="section" style="margin-top:12px">
+        <div class="row">
+          <div class="col">
+            <h3>スポット一覧</h3>
+            <div id="spotList" class="list"></div>
+          </div>
+          <div class="col">
+            <h3>スポット追加/編集（運営のみ）</h3>
+            <p class="note">地図クリック/右クリックで緯度経度が自動入力。「現在地」でも可。</p>
+            <form id="spotForm">
+              <label>名称</label><input id="spotName" required />
+              <label>カテゴリ</label>
+              <select id="spotCat">
+                <option value="休憩所">休憩所</option>
+                <option value="給水">給水</option>
+                <option value="トイレ">トイレ</option>
+                <option value="宿">宿</option>
+                <option value="お接待">お接待</option>
+              </select>
+              <div class="row">
+                <div class="col">
+                  <label>緯度</label><input id="spotLat" type="number" step="0.000001" />
+                </div>
+                <div class="col">
+                  <label>経度</label><input id="spotLng" type="number" step="0.000001" />
+                </div>
+              </div>
+              <div class="toolbar">
+                <button type="button" id="spotUseHere">現在地</button>
+                <button type="button" id="spotPickOnMap">地図から選択</button>
+              </div>
+              <label>営業時間/備考</label><input id="spotNote"/>
+              <div class="toolbar">
+                <button class="primary" type="submit">保存</button>
+                <button type="button" id="spotNew">新規</button>
+                <button type="button" id="spotDelete">削除</button>
+                <input type="hidden" id="spotId" />
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== LIVE ===== -->
+    <section id="live" class="section">
+      <div class="row">
+        <div class="col">
+          <h3>LIVE投稿</h3>
+          <form id="liveForm">
+            <label>カテゴリ</label>
+            <select id="liveCat">
+              <option>交通</option><option>天気</option><option>危険</option><option>混雑</option><option>イベント</option>
+            </select>
+            <label>内容</label><textarea id="liveBody" placeholder="例）国道XXで通行止め/雨が強い など"></textarea>
+            <div class="row">
+              <div class="col">
+                <label>位置(緯度) <span class="muted">※未入力でもOK</span></label><input id="liveLat" type="number" step="0.000001"/>
+              </div>
+              <div class="col">
+                <label>位置(経度)</label><input id="liveLng" type="number" step="0.000001"/>
+              </div>
+            </div>
+            <div class="toolbar">
+              <button type="button" id="liveUseHere">現在地</button>
+              <button type="button" id="livePickOnMap">地図から選択</button>
+            </div>
+            <label>有効期限（時間）</label>
+            <select id="liveTTL">
+              <option value="1">1</option><option value="3">3</option><option value="6">6</option>
+              <option value="12">12</option><option value="24">24</option>
+            </select>
+            <div class="toolbar">
+              <button class="primary" type="submit">投稿</button>
+              <span class="muted">写真は本番でサーバ保存。デモでは端末内のみ。</span>
+            </div>
+          </form>
+        </div>
+        <div class="col">
+          <h3>LIVEフィード</h3>
+          <div id="liveFeed" class="list"></div>
+          <p class="note">古い投稿は有効期限で自動的に非表示になります。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Diary ===== -->
+    <section id="diary" class="section">
+      <div class="row">
+        <div class="col">
+          <h3>日記を書く/編集</h3>
+          <form id="diaryForm">
+            <input type="hidden" id="diaryId" />
+            <label>日時</label><input id="diaryAt" type="datetime-local"/>
+            <label>本文</label><textarea id="diaryBody" placeholder="今日の出来事や気づき…"></textarea>
+            <div class="row">
+              <div class="col"><label>位置(緯度) <span class="muted">※任意</span></label><input id="diaryLat" type="number" step="0.000001"/></div>
+              <div class="col"><label>位置(経度)</label><input id="diaryLng" type="number" step="0.000001"/></div>
+            </div>
+            <div class="toolbar">
+              <button type="button" id="diaryUseHere">現在地</button>
+              <button type="button" id="diaryPickOnMap">地図から選択</button>
+            </div>
+            <label>写真 <span class="muted">（端末から選択・自動で軽量化）</span></label>
+            <input id="diaryPhotos" type="file" accept="image/*" multiple />
+            <div id="diaryPhotoPreview" class="thumbs"></div>
+            <div class="toolbar"><button class="primary" type="submit" id="diarySaveBtn">保存</button><button type="button" id="diaryReset">新規に戻す</button></div>
+          </form>
+        </div>
+        <div class="col">
+          <h3>日記一覧</h3>
+          <div id="diaryList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Encounter ===== -->
+    <section id="encounter" class="section">
+      <div class="row">
+        <div class="col">
+          <h3>出会いを記録</h3>
+          <form id="encForm">
+            <input type="hidden" id="encId" />
+            <label>名前/ニックネーム</label><input id="encName" />
+            <label>場所</label><input id="encPlace" />
+            <label>メモ</label><textarea id="encMemo"></textarea>
+            <label>写真</label><input id="encPhotos" type="file" accept="image/*" multiple />
+            <div id="encPhotoPreview" class="thumbs"></div>
+            <label>公開範囲</label>
+            <select id="encVisibility">
+              <option value="private">非公開</option>
+              <option value="friends">限定公開</option>
+              <option value="public">公開</option>
+            </select>
+            <div class="toolbar"><button class="primary" type="submit">保存</button><button type="button" id="encReset">新規に戻す</button></div>
+          </form>
+        </div>
+        <div class="col">
+          <h3>出会い一覧</h3>
+          <div id="encList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Temples + QR ===== -->
+    <section id="temples" class="section">
+      <div class="toolbar">
+        <button id="qrScanBtn">QRをスキャンしてチェックイン</button>
+        <button id="qrStopBtn" style="display:none">スキャン停止</button>
+        <span class="muted">※デモでは簡易トークンで判定。運営はQR生成を活用。</span>
+      </div>
+      <video id="qrVideo" class="qr-canvas" playsinline style="display:none"></video>
+      <canvas id="qrCanvas" class="qr-canvas" style="display:none"></canvas>
+
+      <div class="row">
+        <div class="col">
+          <h3>霊場一覧</h3>
+          <div id="templeList" class="list"></div>
+        </div>
+        <div class="col">
+          <h3>運営向け: QRコード生成</h3>
+          <div class="toolbar">
+            <label>番号</label>
+            <input id="qrTempleNo" type="number" min="1" max="88" value="1" style="width:120px"/>
+            <button id="makeQR">QR生成</button>
+            <a id="downloadQR" download="temple_qr.png" style="display:none"><button type="button">画像を保存</button></a>
+          </div>
+          <div id="qrHolder" class="card" style="display:grid;place-items:center"></div>
+          <p class="note">データ形式: <code>ohenro://t/{no}/{token}</code>（デモ用トークン）</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 88 Gallery ===== -->
+    <section id="gallery88" class="section">
+      <h3>88箇所ギャラリー（写真チェックリスト）</h3>
+      <p class="note">番号をタップして写真URLを保存できます（デモのためURL入力）。</p>
+      <div class="grid88" id="grid88"></div>
+    </section>
+
+    <!-- ===== Achievements ===== -->
+    <section id="achieve" class="section">
+      <h3>アチーブメント</h3>
+      <div class="list" id="achList"></div>
+    </section>
+
+    <!-- ===== Settings ===== -->
+    <section id="settings" class="section">
+      <div class="row">
+        <div class="col">
+          <h3>通知</h3>
+          <div class="toolbar">
+            <button id="askNotify">通知を許可</button>
+            <button id="testNotify">テスト通知</button>
+          </div>
+          <label class="pill"><input type="checkbox" id="remindHourly"> 毎時の休憩リマインド（ページを開いている間）</label>
+          <label class="pill"><input type="checkbox" id="remindWater"> 60分ごとに水分補給を通知</label>
+        </div>
+        <div class="col">
+          <h3>位置情報</h3>
+          <p class="note">「現在地」ボタンで端末の位置を使用できます。許可ダイアログが出る場合があります。</p>
+          <div class="kvs" id="geoStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== About ===== -->
+    <section id="about" class="section">
+      <h3>使い方 / 注意</h3>
+      <ul>
+        <li>データはこの端末のブラウザ（LocalStorage）に保存されます。右上からエクスポート/インポート可能。</li>
+        <li>運営モードにするとスポットの追加/編集/削除、QR生成ができます（デモ）。</li>
+        <li>通知はこのページを開いている間に限り動作します（本番のプッシュ通知はPWA+サーバ要）。</li>
+        <li>顔写真や個人情報の公開は十分ご注意ください。</li>
+      </ul>
+      <details>
+        <summary>データ設計(簡易)</summary>
+<pre class="muted">User: { role, theme, reminders }
+Spot: { id, name, cat, lat, lng, note, updatedAt }
+LiveReport: { id, cat, body, lat?, lng?, expiresAt, createdAt, status }
+Diary: { id, at, body, lat?, lng?, photos: [dataUrl,...] }
+TemplePhoto: { templeNo, photoUrl? }
+Encounter: { id, name, place, memo, photos:[dataUrl,...], visibility, createdAt }
+TempleVisited: { [no]: timestamp }
+</pre>
+      </details>
+    </section>
+  </main>
+
+  <!-- Libs -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgI92+78Hrt9vI0d8clkc7Plg6iXlJG8leqhoNPZ8Yf7zYcJHnhr4T7KQIG7kS4R3h3tH0xX2oAq9v3QJYk2w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+  <script>
+  // ===== State =====
+  const S = {
+    role: localStorage.getItem('role') || 'user',
+    theme: localStorage.getItem('theme') || 'dark',
+    reminders: JSON.parse(localStorage.getItem('reminders') || '{"hourly":false,"water":false}'),
+    spots: JSON.parse(localStorage.getItem('spots') || '[]'),
+    live: JSON.parse(localStorage.getItem('live') || '[]'),
+    diaries: JSON.parse(localStorage.getItem('diaries') || '[]'),
+    encounters: JSON.parse(localStorage.getItem('encounters') || '[]'),
+    templePhotos: JSON.parse(localStorage.getItem('templePhotos') || '{}'),
+    templeVisited: JSON.parse(localStorage.getItem('templeVisited') || '{}'),
+  };
+  function save(k){ localStorage.setItem(k, JSON.stringify(S[k])); }
+
+  // Theme
+  document.documentElement.setAttribute('data-theme', S.theme==='dark'?'':S.theme);
+  document.getElementById('themePick').value = S.theme;
+  document.getElementById('themePick').addEventListener('change', (e)=>{
+    S.theme = e.target.value; localStorage.setItem('theme', S.theme);
+    document.documentElement.setAttribute('data-theme', S.theme==='dark'?'':S.theme);
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      const id = btn.dataset.tab; document.getElementById(id).classList.add('active');
+      if(id==='gallery88') render88();
+      if(id==='diary') renderDiary();
+      if(id==='encounter') renderEncounters();
+      if(id==='live') renderLiveFeed();
+      if(id==='achieve') renderAchieves();
+      if(id==='temples') renderTemples();
+      if(id==='mapTab') setTimeout(()=> map.invalidateSize(), 200);
+    });
+  });
+
+  // Role
+  const roleLabel = document.getElementById('roleLabel');
+  function reflectRole(){
+    roleLabel.textContent = (S.role === 'op') ? '運営' : '一般ユーザー';
+    document.querySelectorAll('#spotForm input, #spotForm select, #spotForm button').forEach(el=>{
+      el.disabled = (S.role !== 'op') && !(el.id==='spotNew');
+    });
+    document.getElementById('makeQR').disabled = (S.role !== 'op');
+    document.getElementById('qrTempleNo').disabled = (S.role !== 'op');
+  }
+  document.getElementById('toggleRole').addEventListener('click', ()=>{
+    S.role = (S.role === 'op') ? 'user' : 'op'; localStorage.setItem('role', S.role); reflectRole();
+  });
+  reflectRole();
+
+  // Map
+  const shikokuBounds = L.latLngBounds([32.5, 132.0],[34.6, 134.8]);
+  const map = L.map('map', {maxBounds: shikokuBounds.pad(0.1), maxBoundsViscosity: 1.0, zoomControl:true}).setView([33.6,133.6], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+
+  let spotMarkers = new Map();
+  let pickTarget = null;
+  function renderSpots(){
+    spotMarkers.forEach(m=> map.removeLayer(m)); spotMarkers.clear();
+    const list = document.getElementById('spotList'); list.innerHTML='';
+    const activeCats = [...document.querySelectorAll('.catFilter:checked')].map(i=>i.value);
+
+    S.spots.forEach(sp=>{
+      if(!activeCats.includes(sp.cat)) return;
+      const icon = L.divIcon({className:'', html:`<div style="width:18px;height:18px;border-radius:50%;background:${catColor(sp.cat)};border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.2)"></div>`});
+      const m = L.marker([sp.lat, sp.lng],{icon}).addTo(map).bindPopup(`<b>${escapeHtml(sp.name)}</b><br>${escapeHtml(sp.cat)}<br>${escapeHtml(sp.note||'')}`);
+      spotMarkers.set(sp.id, m);
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div><strong>${escapeHtml(sp.name)}</strong> <span class="pill">${escapeHtml(sp.cat)}</span></div>
+        <div class="muted">${sp.lat.toFixed(4)}, ${sp.lng.toFixed(4)} / 更新: ${new Date(sp.updatedAt).toLocaleString()}</div>
+        <div>${escapeHtml(sp.note||'')}</div>
+        <div class="toolbar"><button data-id="${sp.id}" class="sel">編集</button></div>`;
+      list.appendChild(div);
+    });
+    list.querySelectorAll('button.sel').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const sp = S.spots.find(x=>x.id === btn.dataset.id); if(!sp) return;
+        document.getElementById('spotId').value = sp.id;
+        document.getElementById('spotName').value = sp.name;
+        document.getElementById('spotCat').value = sp.cat;
+        document.getElementById('spotLat').value = sp.lat;
+        document.getElementById('spotLng').value = sp.lng;
+        document.getElementById('spotNote').value = sp.note||'';
+      });
+    });
+  }
+  renderSpots();
+
+  map.on('click', (e)=>{
+    if(pickTarget){
+      pickTarget.latEl.value = e.latlng.lat.toFixed(6);
+      pickTarget.lngEl.value = e.latlng.lng.toFixed(6);
+      pickTarget = null;
+      alert('位置を入力しました');
+      return;
+    }
+    if(S.role !== 'op') return;
+    document.getElementById('spotLat').value = e.latlng.lat.toFixed(6);
+    document.getElementById('spotLng').value = e.latlng.lng.toFixed(6);
+  });
+  map.on('contextmenu', (e)=>{
+    if(S.role !== 'op') return;
+    document.getElementById('spotLat').value = e.latlng.lat.toFixed(6);
+    document.getElementById('spotLng').value = e.latlng.lng.toFixed(6);
+  });
+
+  document.querySelectorAll('.catFilter').forEach(cb=> cb.addEventListener('change', renderSpots));
+
+  // spot form
+  document.getElementById('spotForm').addEventListener('submit', (ev)=>{
+    ev.preventDefault(); if(S.role !== 'op'){ alert('運営のみ追加できます'); return; }
+    const id = document.getElementById('spotId').value || crypto.randomUUID();
+    const sp = {
+      id,
+      name: document.getElementById('spotName').value.trim(),
+      cat: document.getElementById('spotCat').value,
+      lat: parseFloat(document.getElementById('spotLat').value),
+      lng: parseFloat(document.getElementById('spotLng').value),
+      note: document.getElementById('spotNote').value.trim(),
+      updatedAt: Date.now()
+    };
+    const idx = S.spots.findIndex(x=>x.id===id); if(idx>=0) S.spots[idx] = sp; else S.spots.push(sp);
+    save('spots'); renderSpots(); ev.target.reset();
+  });
+  document.getElementById('spotDelete').addEventListener('click', ()=>{
+    if(S.role !== 'op'){ alert('運営のみ削除できます'); return; }
+    const id = document.getElementById('spotId').value; if(!id) return;
+    S.spots = S.spots.filter(x=>x.id!==id); save('spots'); renderSpots(); document.getElementById('spotForm').reset();
+  });
+  document.getElementById('spotNew').addEventListener('click', ()=>{document.getElementById('spotForm').reset(); document.getElementById('spotId').value='';});
+  document.getElementById('spotUseHere').addEventListener('click', ()=> fillHere('spotLat','spotLng'));
+  document.getElementById('spotPickOnMap').addEventListener('click', ()=>{ pickTarget = { latEl:document.getElementById('spotLat'), lngEl:document.getElementById('spotLng') }; alert('地図をタップして位置を選んでください'); });
+
+  // LIVE
+  function renderLiveFeed(){
+    const feed = document.getElementById('liveFeed'); feed.innerHTML='';
+    const now = Date.now(); S.live = S.live.filter(x => x.expiresAt > now); save('live');
+    [...S.live].sort((a,b)=>b.createdAt-a.createdAt).forEach(it=>{
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div><span class="pill">${escapeHtml(it.cat)}</span> <span class="muted right">${new Date(it.createdAt).toLocaleString()}</span></div>
+        <div>${escapeHtml(it.body)}</div>
+        <div class="muted">${(it.lat && it.lng)? `${it.lat.toFixed(4)}, ${it.lng.toFixed(4)}` : ''}</div>
+        <div class="muted">有効期限: ${new Date(it.expiresAt).toLocaleString()}</div>
+        <div class="toolbar"><button data-id="${it.id}" class="report">通報</button>${S.role==='op'?`<button data-id="${it.id}" class="del">削除</button>`:''}</div>`;
+      feed.appendChild(div);
+    });
+    feed.querySelectorAll('button.report').forEach(b=>b.addEventListener('click',()=>alert('通報を受け付けました(デモ)')));
+    feed.querySelectorAll('button.del').forEach(b=>b.addEventListener('click',()=>{ S.live = S.live.filter(x=>x.id!==b.dataset.id); save('live'); renderLiveFeed(); }));
+  }
+  renderLiveFeed();
+
+  document.getElementById('liveForm').addEventListener('submit',(ev)=>{
+    ev.preventDefault();
+    const it = {
+      id: crypto.randomUUID(),
+      cat: document.getElementById('liveCat').value,
+      body: document.getElementById('liveBody').value.trim(),
+      lat: parseFloat(document.getElementById('liveLat').value) || null,
+      lng: parseFloat(document.getElementById('liveLng').value) || null,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + parseInt(document.getElementById('liveTTL').value,10)*3600*1000,
+      status: 'active'
+    };
+    S.live.push(it); save('live'); ev.target.reset(); renderLiveFeed();
+    bumpAchieve('live1');
+  });
+  document.getElementById('liveUseHere').addEventListener('click', ()=> fillHere('liveLat','liveLng'));
+  document.getElementById('livePickOnMap').addEventListener('click', ()=>{ pickTarget = { latEl:document.getElementById('liveLat'), lngEl:document.getElementById('liveLng') }; alert('地図をタップして位置を選んでください'); });
+
+  // Diary
+  let diaryPhotoQueue = [];
+  const diaryPrev = document.getElementById('diaryPhotoPreview');
+  document.getElementById('diaryPhotos').addEventListener('change', async (e)=>{
+    diaryPhotoQueue = []; diaryPrev.innerHTML='';
+    for(const f of e.target.files){
+      const dataUrl = await fileToDataUrlResized(f, 1280, 0.8);
+      diaryPhotoQueue.push(dataUrl);
+      const img = document.createElement('img'); img.src = dataUrl; diaryPrev.appendChild(img);
+    }
+  });
+  document.getElementById('diaryForm').addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const id = document.getElementById('diaryId').value || crypto.randomUUID();
+    const d = {
+      id,
+      at: document.getElementById('diaryAt').value || new Date().toISOString().slice(0,16),
+      body: document.getElementById('diaryBody').value.trim(),
+      lat: parseFloat(document.getElementById('diaryLat').value) || null,
+      lng: parseFloat(document.getElementById('diaryLng').value) || null,
+      photos: diaryPhotoQueue.slice(),
+    };
+    const idx = S.diaries.findIndex(x=>x.id===id); if(idx>=0) S.diaries[idx]=d; else S.diaries.push(d);
+    save('diaries'); renderDiary();
+    ev.target.reset(); diaryPhotoQueue=[]; diaryPrev.innerHTML=''; document.getElementById('diaryId').value='';
+    bumpAchieve('diary1'); if(d.photos && d.photos.length>0) bumpAchieve('diaryPhoto1');
+  });
+  document.getElementById('diaryReset').addEventListener('click', ()=>{ document.getElementById('diaryForm').reset(); diaryPhotoQueue=[]; diaryPrev.innerHTML=''; document.getElementById('diaryId').value=''; });
+  document.getElementById('diaryUseHere').addEventListener('click', ()=> fillHere('diaryLat','diaryLng'));
+  document.getElementById('diaryPickOnMap').addEventListener('click', ()=>{ pickTarget = { latEl:document.getElementById('diaryLat'), lngEl:document.getElementById('diaryLng') }; alert('地図をタップして位置を選んでください'); });
+
+  function renderDiary(){
+    const list = document.getElementById('diaryList'); list.innerHTML='';
+    [...S.diaries].sort((a,b)=> (b.at||'').localeCompare(a.at||'')).forEach(d=>{
+      const div = document.createElement('div'); div.className='card';
+      const thumbs = (d.photos||[]).map(p=>`<img src="${p}" alt="photo"/>`).join('');
+      div.innerHTML = `<div><strong>${escapeHtml(formatAt(d.at))}</strong> <span class="muted right">${(d.lat&&d.lng)? `${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}`:''}</span></div>
+        <div>${escapeHtml(d.body||'')}</div>
+        <div class="thumbs">${thumbs}</div>
+        <div class="toolbar"><button data-id="${d.id}" class="edit">編集</button><button data-id="${d.id}" class="del">削除</button></div>`;
+      list.appendChild(div);
+    });
+    list.querySelectorAll('button.del').forEach(b=>b.addEventListener('click',()=>{ S.diaries = S.diaries.filter(x=>x.id!==b.dataset.id); save('diaries'); renderDiary(); }));
+    list.querySelectorAll('button.edit').forEach(b=>b.addEventListener('click',()=>{
+      const d = S.diaries.find(x=>x.id===b.dataset.id); if(!d) return;
+      document.getElementById('diaryId').value = d.id;
+      document.getElementById('diaryAt').value = (d.at||'').slice(0,16);
+      document.getElementById('diaryBody').value = d.body||'';
+      document.getElementById('diaryLat').value = d.lat||'';
+      document.getElementById('diaryLng').value = d.lng||'';
+      diaryPhotoQueue = (d.photos||[]).slice(); diaryPrev.innerHTML='';
+      for(const p of diaryPhotoQueue){ const img=document.createElement('img'); img.src=p; diaryPrev.appendChild(img); }
+    }));
+  }
+  renderDiary();
+
+  // Encounters
+  let encPhotoQueue = [];
+  const encPrev = document.getElementById('encPhotoPreview');
+  document.getElementById('encPhotos').addEventListener('change', async (e)=>{
+    encPhotoQueue = []; encPrev.innerHTML='';
+    for(const f of e.target.files){ const dataUrl = await fileToDataUrlResized(f, 1280, 0.8); encPhotoQueue.push(dataUrl); const img=document.createElement('img'); img.src=dataUrl; encPrev.appendChild(img);}    
+  });
+  document.getElementById('encForm').addEventListener('submit',(ev)=>{
+    ev.preventDefault();
+    const id = document.getElementById('encId').value || crypto.randomUUID();
+    const e = {
+      id,
+      name: document.getElementById('encName').value.trim(),
+      place: document.getElementById('encPlace').value.trim(),
+      memo: document.getElementById('encMemo').value.trim(),
+      photos: encPhotoQueue.slice(),
+      visibility: document.getElementById('encVisibility').value,
+      createdAt: Date.now()
+    };
+    const idx = S.encounters.findIndex(x=>x.id===id); if(idx>=0) S.encounters[idx]=e; else S.encounters.push(e);
+    save('encounters'); renderEncounters(); ev.target.reset(); encPhotoQueue=[]; encPrev.innerHTML=''; document.getElementById('encId').value='';
+    if(e.photos && e.photos.length>0) bumpAchieve('encPhoto1');
+  });
+  document.getElementById('encReset').addEventListener('click', ()=>{ document.getElementById('encForm').reset(); encPhotoQueue=[]; encPrev.innerHTML=''; document.getElementById('encId').value=''; });
+
+  function renderEncounters(){
+    const list = document.getElementById('encList'); list.innerHTML='';
+    [...S.encounters].sort((a,b)=> b.createdAt-a.createdAt).forEach(e=>{
+      const thumbs = (e.photos||[]).map(p=>`<img src="${p}" alt="photo"/>`).join('');
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div><strong>${escapeHtml(e.name||'(名無し)')}</strong> <span class="pill">${escapeHtml(e.visibility)}</span>
+        <span class="muted right">${new Date(e.createdAt).toLocaleString()}</span></div>
+        <div class="muted">${escapeHtml(e.place||'')}</div>
+        <div>${escapeHtml(e.memo||'')}</div>
+        <div class="thumbs">${thumbs}</div>
+        <div class="toolbar"><button data-id="${e.id}" class="del">削除</button></div>`;
+      list.appendChild(div);
+    });
+    list.querySelectorAll('button.del').forEach(b=>b.addEventListener('click',()=>{ S.encounters = S.encounters.filter(x=>x.id!==b.dataset.id); save('encounters'); renderEncounters(); }));
+  }
+  renderEncounters();
+
+  // Temples + QR
+  function ensure88(){ for(let i=1;i<=88;i++){ if(!(i in S.templePhotos)) S.templePhotos[i] = null; } save('templePhotos'); }
+  ensure88();
+  function renderTemples(){
+    const list = document.getElementById('templeList'); list.innerHTML='';
+    for(let i=1;i<=88;i++){
+      const visited = S.templeVisited[i];
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div><strong>第${i}番 霊場</strong> ${visited?`<span class="ok">✓ 訪問済 ${new Date(visited).toLocaleDateString()}</span>`:'<span class="muted">未チェックイン</span>'} <span class="right pill">#${i}</span></div>
+        <div class="toolbar"><button data-no="${i}" class="visitMan">手動で訪問にする</button> <button data-no="${i}" class="visitClear">取消</button></div>`;
+      list.appendChild(div);
+    }
+    list.querySelectorAll('button.visitMan').forEach(b=>b.addEventListener('click',()=>{ const no = parseInt(b.dataset.no,10); S.templeVisited[no] = Date.now(); save('templeVisited'); renderTemples(); bumpAchieve('temple1'); }));
+    list.querySelectorAll('button.visitClear').forEach(b=>b.addEventListener('click',()=>{ const no = parseInt(b.dataset.no,10); delete S.templeVisited[no]; save('templeVisited'); renderTemples(); }));
+    render88();
+  }
+  renderTemples();
+
+  // QR generation & scanning
+  function tokenFor(no){ return btoa(`t${no}-demo`); }
+  let qrObj = null;
+  document.getElementById('makeQR').addEventListener('click', (e)=>{
+    e.preventDefault(); if(S.role!=='op'){ alert('運営モードに切替えてください'); return; }
+    const no = parseInt(document.getElementById('qrTempleNo').value,10);
+    const data = `ohenro://t/${no}/${tokenFor(no)}`;
+    const holder = document.getElementById('qrHolder'); holder.innerHTML='';
+    qrObj = new QRCode(holder, {text:data, width:256, height:256});
+    setTimeout(()=>{ const img = holder.querySelector('img'); if(img){ const a = document.getElementById('downloadQR'); a.style.display='inline-block'; a.href = img.src; } }, 200);
+  });
+
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  let scanTimer = null;
+  document.getElementById('qrScanBtn').addEventListener('click', async ()=>{
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      video.srcObject = stream; await video.play();
+      video.style.display='block'; canvas.style.display='block'; document.getElementById('qrStopBtn').style.display='inline-block';
+      scanTimer = requestAnimationFrame(scanFrame);
+    }catch(err){ alert('カメラ起動に失敗: '+err.message); }
+  });
+  document.getElementById('qrStopBtn').addEventListener('click', stopScan);
+  function stopScan(){
+    if(video.srcObject){ video.srcObject.getTracks().forEach(t=>t.stop()); }
+    video.style.display='none'; canvas.style.display='none'; document.getElementById('qrStopBtn').style.display='none';
+    if(scanTimer){ cancelAnimationFrame(scanTimer); scanTimer=null; }
+  }
+  function scanFrame(){
+    if(video.readyState===video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code = jsQR(imgData.data, imgData.width, imgData.height);
+      if(code){ handleQR(code.data); stopScan(); return; }
+    }
+    scanTimer = requestAnimationFrame(scanFrame);
+  }
+  function handleQR(text){
+    try{
+      const url = new URL(text.replace('ohenro://','https://dummy/'));
+      const parts = url.pathname.split('/').filter(Boolean);
+      if(parts[0]!=="t") throw new Error('形式エラー');
+      const no = parseInt(parts[1],10); const token = parts[2];
+      if(token !== tokenFor(no)) throw new Error('トークン不一致（デモ）');
+      S.templeVisited[no] = Date.now(); save('templeVisited'); renderTemples(); bumpAchieve('temple1');
+      notify('チェックイン', `第${no}番 霊場を訪問に記録しました。`);
+    }catch(err){ alert('QRの読み取りに失敗: '+err.message); }
+  }
+
+  // 88 gallery
+  function render88(){
+    const grid = document.getElementById('grid88'); if(!grid) return; grid.innerHTML='';
+    let done=0;
+    for(let i=1;i<=88;i++){
+      const url = S.templePhotos[i]; if(url) done++;
+      const div = document.createElement('div'); div.className='cell88';
+      div.innerHTML = `<div><strong>${i}番</strong> ${url ? '<span class="ok">✓</span>' : '<span class="muted">未登録</span>'}</div>
+        <input placeholder="写真URL（デモ用）" value="${url?url:''}" data-no="${i}" />
+        ${url ? `<img src="${url}" alt="Temple ${i}">` : ''}`;
+      grid.appendChild(div);
+    }
+    const rate = Math.round((done/88)*100);
+    const title = document.querySelector('#gallery88 h3'); if(title) title.innerHTML = `88箇所ギャラリー（${done}/88達成・${rate}%）`;
+    grid.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('change',()=>{ const no = parseInt(inp.dataset.no,10); S.templePhotos[no] = inp.value.trim() || null; save('templePhotos'); render88(); });
+    });
+  }
+
+  // Achievements
+  const ACV = JSON.parse(localStorage.getItem('achievements')||'{}');
+  function bumpAchieve(key){ ACV[key]=true; localStorage.setItem('achievements', JSON.stringify(ACV)); renderAchieves(); }
+  function renderAchieves(){
+    const list = document.getElementById('achList'); list.innerHTML='';
+    const items = [
+      {key:'diary1', title:'初めての日記', desc:'日記を1件保存した', done:!!ACV.diary1},
+      {key:'diaryPhoto1', title:'写真つき日記', desc:'写真入りの日記を作成した', done:!!ACV.diaryPhoto1},
+      {key:'live1', title:'初LIVE', desc:'LIVE投稿を1件行った', done:!!ACV.live1},
+      {key:'encPhoto1', title:'出会いの記録', desc:'写真付きの出会いを記録した', done:!!ACV.encPhoto1},
+      {key:'temple1', title:'霊場チェックイン', desc:'霊場にチェックインした', done:!!ACV.temple1},
+    ];
+    const tVisited = Object.keys(S.templeVisited).length;
+    const diaryCnt = S.diaries.length;
+    const rows = [
+      {title:`霊場訪問 ${tVisited}/88`, val: tVisited/88},
+      {title:`日記 ${diaryCnt}件`, val: Math.min(diaryCnt/30,1)},
+    ];
+
+    items.forEach(it=>{
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div><strong>${it.title}</strong> <span class="pill">${it.done?'<span class="ok">達成</span>':'進行中'}</span></div><div class="muted">${it.desc}</div>`; list.appendChild(div);
+    });
+    rows.forEach(r=>{
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<div>${r.title}</div><div class="progress"><div class="bar" style="width:${Math.round(r.val*100)}%"></div></div>`; list.appendChild(div);
+    });
+  }
+  renderAchieves();
+
+  // Settings: Notifications & Geo
+  let hourlyTimer = null, waterTimer = null;
+  function restoreReminders(){
+    document.getElementById('remindHourly').checked = !!S.reminders.hourly;
+    document.getElementById('remindWater').checked = !!S.reminders.water;
+    if(S.reminders.hourly) startHourly(); if(S.reminders.water) startWater();
+  }
+  restoreReminders();
+  document.getElementById('askNotify').addEventListener('click', async ()=>{ try{ await Notification.requestPermission(); alert('通知許可: '+Notification.permission); }catch(e){ alert('通知権限エラー: '+e.message);} });
+  document.getElementById('testNotify').addEventListener('click', ()=> notify('テスト通知','こちらはテストです'));
+  document.getElementById('remindHourly').addEventListener('change',(e)=>{ S.reminders.hourly = e.target.checked; save('reminders'); if(e.target.checked) startHourly(); else stopHourly(); });
+  document.getElementById('remindWater').addEventListener('change',(e)=>{ S.reminders.water = e.target.checked; save('reminders'); if(e.target.checked) startWater(); else stopWater(); });
+
+  function startHourly(){ stopHourly(); hourlyTimer = setInterval(()=> notify('休憩リマインド','無理せず小休止を！'), 60*60*1000); notify('休憩リマインド','毎時通知を開始しました'); }
+  function stopHourly(){ if(hourlyTimer){ clearInterval(hourlyTimer); hourlyTimer=null; } }
+  function startWater(){ stopWater(); waterTimer = setInterval(()=> notify('水分補給','60分ごとに水分補給！'), 60*60*1000); notify('水分補給','リマインドを開始しました'); }
+  function stopWater(){ if(waterTimer){ clearInterval(waterTimer); waterTimer=null; } }
+
+  function notify(title, body){ try{ if(Notification.permission==='granted'){ new Notification(title, { body }); } }catch(_){} }
+
+  // Geo helpers
+  async function fillHere(latId, lngId){
+    try{
+      const pos = await navigator.geolocation.getCurrentPosition.bind(navigator.geolocation)({ enableHighAccuracy:true, timeout:8000, maximumAge:0 });
+    }catch(_){}
+    navigator.geolocation.getCurrentPosition((p)=>{
+      document.getElementById(latId).value = p.coords.latitude.toFixed(6);
+      document.getElementById(lngId).value = p.coords.longitude.toFixed(6);
+      showGeoStatus(p);
+    }, (err)=>{ alert('位置取得エラー: '+err.message); });
+  }
+  function showGeoStatus(p){
+    const box = document.getElementById('geoStatus');
+    box.innerHTML = `<span>緯度: ${p.coords.latitude.toFixed(5)}</span><span>経度: ${p.coords.longitude.toFixed(5)}</span><span>精度: ${p.coords.accuracy}m</span>`;
+  }
+
+  // Export/Import
+  document.getElementById('exportAll').addEventListener('click',()=>{
+    const data = JSON.stringify({S, exportedAt: new Date().toISOString()}, null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='ohenro_mvp_export.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+  document.getElementById('importBtn').addEventListener('click',()=> document.getElementById('importAll').click());
+  document.getElementById('importAll').addEventListener('change',(e)=>{
+    const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{
+      try{ const obj = JSON.parse(r.result); Object.assign(S, obj.S || {});
+        for(const k of ['spots','live','diaries','encounters','templePhotos','templeVisited','role','theme','reminders']){
+          if(S[k]!==undefined){ if(['role','theme'].includes(k)) localStorage.setItem(k, S[k]); else save(k); }
+        }
+        document.getElementById('themePick').value = S.theme; document.documentElement.setAttribute('data-theme', S.theme==='dark'?'':S.theme);
+        reflectRole(); renderSpots(); renderLiveFeed(); renderDiary(); render88(); renderEncounters(); renderTemples(); renderAchieves(); restoreReminders();
+        alert('インポートしました');
+      }catch(err){ alert('読み込み失敗: '+ err.message); }
+    }; r.readAsText(f);
+  });
+
+  // Utils
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+  function catColor(c){ return { '休憩所':'#2ecc71','給水':'#3498db','トイレ':'#9b59b6','宿':'#f39c12','お接待':'#e74c3c' }[c] || '#95a5a6'; }
+  function formatAt(at){ try{ return new Date(at).toLocaleString(); }catch(_){ return at; } }
+  async function fileToDataUrlResized(file, maxW=1280, quality=0.85){
+    const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
+    const scale = Math.min(1, maxW / img.width); const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+    const c = document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'); x.drawImage(img,0,0,w,h); return c.toDataURL('image/jpeg', quality);
+  }
+  </script>
+
+  <!-- Service Worker 登録（どちらか存在する方でOK） -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          await navigator.serviceWorker.register('./service-worker.js');
+        } catch (e1) {
+          try { await navigator.serviceWorker.register('./sw.js'); }
+          catch(e2){ console.warn('SW登録スキップ:', e2.message); }
+        }
+      });
+    }
+  </script>
+
 </body>
 </html>
